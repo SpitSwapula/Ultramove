@@ -3,7 +3,7 @@
 @outputs SProps:array
 @persist Sliding Smashing Gravity Zdist ShowDebugHolos [LockedVec DashVec]:vector SProps:array DashTime SmashTime WallJumps
 @trigger 
-
+#note that because of how source movement works, walljumping works best if you hold no movement keys while walljumping
 if( first() ){
 #settings
     Zdist = 5
@@ -55,6 +55,7 @@ if( first() ){
     holoModel(1,"models/holograms/hq_torus.mdl")
     holoColor(1,vec(150,150,150))
     holoAlpha(1,0)
+    holoAng(1,ang(0,0,0))
     
     owner():disableFallDamage()
     
@@ -135,7 +136,7 @@ if(changed(KSpace) & KSpace){
           
         owner():soundPlay("jump",3,"npc/dog/dog_pneumatic"+randint(1,2)+".wav")
         soundPitch("jump",90)
-    }else{
+    }elseif(!KJ){
         #wall jump
         
         local EndVec = vec(0,0,0)
