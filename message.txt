@@ -1,0 +1,279 @@
+@name Ultrakill Movement Beta (WALLJUMP)
+@inputs 
+@outputs SProps:array
+@persist Sliding Smashing Gravity Zdist ShowDebugHolos [LockedVec DashVec]:vector SProps:array DashTime SmashTime WallJumps
+@trigger 
+
+if( first() ){
+#settings
+    Zdist = 5
+##################################################
+    
+    runOnTick(1)
+    runOnLast(1)
+    
+    Gravity = owner():plyGetGravity()
+    
+    if(ShowDebugHolos){
+        print("A")
+        for(I=1,4){
+            holoCreate(I)
+            holoColor(I,vec(255,0,0))
+            holoDisableShading(I,1)
+        }
+        
+        holoColor(4,vec(0,0,255))
+    }
+    
+    findIncludeClass("npc")
+    findIncludeClass("player")
+    
+    function void smash(){
+        findInSphere(owner():pos(),300)
+        local InArea = findToArray()
+        
+        for(I=1,InArea:count()){
+            if(InArea[I,entity]:isAlive() & InArea[I,entity] != owner()){
+                local NewHitProp = propSpawn("models/squad/sf_plates/sf_plate2x2.mdl",InArea[I,entity]:toWorld(vec(0,0,-3)),ang(0,0,0),0)
+                NewHitProp:setMass(999999)
+                NewHitProp:applyForce(vec(0,0,1)*NewHitProp:mass()*3900)
+                NewHitProp:setAlpha(0)
+                NewHitProp:soundPlay(3000 + I,6,"weapons/bumper_car_hit_hard.wav")
+                soundPitch(2000+I,randint(40,70))
+                SProps:pushEntity(NewHitProp)
+                        
+                #ifdef entity:setCollisionGroup(string)
+                    NewHitProp:setCollisionGroup(InArea[I,entity]:getCollisionGroup())
+                #else
+                #endif
+            }
+        }
+        timer("cleanSProps",500)
+    }
+    
+    holoCreate(1)
+    holoModel(1,"models/holograms/hq_torus.mdl")
+    holoColor(1,vec(150,150,150))
+    holoAlpha(1,0)
+    
+    owner():disableFallDamage()
+    
+    WallJumps = 3
+}
+
+Time = systime()
+
+if(clk("cleanSProps")){
+    for(I=1,SProps:count()){
+        SProps[I,entity]:propDelete()
+        SProps:remove(I)
+    }
+}
+
+R = rangerOffset(99999999999,owner():pos(),vec(0,0,-1))
+OG      = owner():isOnGround()
+
+KW      = owner():keyForward()
+KA      = owner():keyLeft()
+KS      = owner():keyBack()
+KD      = owner():keyRight()
+KShift  = owner():keySprint()
+KCtrl   = owner():keyDuck()
+KAlt    = owner():keyWalk()
+KSpace  = owner():keyPressed("space")
+KJ      = owner():keyJump() # only returns 1 when not in air (important!)
+
+
+Alive = owner():isAlive()
+
+if(changed(Alive) & Alive){
+    owner():plySetJumpPower(500)    
+}
+
+####################################################
+#dash
+
+if(changed(KShift) & KShift){
+    if(OG){
+        owner():plySetPos(owner():pos()+vec(0,0,5))
+    }
+    local EAF = owner():eyeAngles():forward()*vec(1,1,0)
+    local EAR = owner():eyeAngles():right()*vec(1,1,0)
+            
+    if(KW|KA|KS|KD){
+        DashVec = (KW*EAF + KA*-EAR + KS*-EAF + KD*EAR):normalized()
+    }else{        
+        DashVec = owner():eyeAngles():forward()*vec(1,1,0)
+    }
+    
+    owner():soundPlay("dash",0.2,"ambient/gas/cannister_loop.wav")
+    soundPitch("dash",90)
+    
+    owner():plyApplyForce(-owner():vel() + DashVec*2000)
+    
+    DashTime = Time
+}
+
+DDT = Time - DashTime
+
+if(DDT > 0.2 & DDT <= 0.3){
+    local Up = (DDT - 0.2)/0.1
+    owner():plyApplyForce(-owner():vel() + DashVec*(2000 - 1500*Up^(1/3)))    
+}
+
+###################################################################
+#wall jump
+
+
+if(changed(KSpace) & KSpace){
+    if(Sliding){
+        #slide cancel
+
+        Sliding = 0  
+         
+        owner():plyApplyForce(LockedVec*600)   
+          
+        owner():soundPlay("jump",3,"npc/dog/dog_pneumatic"+randint(1,2)+".wav")
+        soundPitch("jump",90)
+    }else{
+        #wall jump
+        
+        local EndVec = vec(0,0,0)
+        
+        for(I=1,8){
+            local CurrVec = ang(0,(360/8)*I,0):forward()
+            rangerFilter(owner())
+            local WCR = rangerOffset(40,owner():pos()+vec(0,0,30),CurrVec)
+            
+            if(WCR:hit()){
+                EndVec = EndVec + WCR:hitNormal()
+            }
+        }
+        
+        
+        if(EndVec != vec(0,0,0) & WallJumps > 0){
+            EndVec = (EndVec * vec(1,1,0)):normalized()
+            owner():plyApplyForce(-owner():vel() + vec(0,0,500) + EndVec*500)
+            
+            owner():soundPlay("jump",3,"npc/dog/dog_pneumatic"+randint(1,2)+".wav")
+            soundPitch("jump",90)
+            WallJumps--
+            
+            if(WallJumps <= 0){
+                owner():soundPlay("lastjump",3,"buttons/combine_button_locked.wav")
+            }
+        }
+    }
+}
+
+if(changed(KJ) & KJ){
+    #ground jump
+
+    Sliding = 0 #just in case
+        
+    owner():soundPlay("jump",3,"npc/dog/dog_pneumatic"+randint(1,2)+".wav")
+    soundPitch("jump",90)
+}
+
+if(OG){
+    WallJumps = 3
+}
+
+##################################################
+# slide n ground pound
+
+if(changed(KCtrl)){
+    if(OG){
+        if(KCtrl){
+            Sliding = 1
+        }else{
+            Sliding = 0
+        }
+    }else{
+        if(KCtrl){
+            Sliding = 0
+            Smashing = 1
+            owner():soundPlay("wind",0,"coast.windmill")
+        }else{
+            Sliding = 0
+        }            
+    }
+}
+
+if(changed(Sliding)){
+    if(Sliding){
+        concmd("pac_event slide 1")
+        owner():plySetGravity(0)
+        owner():soundPlay("slide",0,"physics/concrete/concrete_scrape_smooth_loop1.wav")
+        soundPitch("slide",111)
+        
+        local EAF = owner():eyeAngles():forward()*vec(1,1,0)
+        local EAR = owner():eyeAngles():right()*vec(1,1,0)
+            
+        if(KW|KA|KS|KD){
+            LockedVec = (KW*EAF + KA*-EAR + KS*-EAF + KD*EAR):normalized()
+        }else{        
+            LockedVec = owner():eyeAngles():forward()*vec(1,1,0)
+        }
+    }else{
+        concmd("pac_event slide 0")
+        owner():plySetGravity(600)
+        soundStop("slide")
+        LockedVec = vec(0,0,0)  
+    }
+}
+
+if(Sliding){    
+    rangerFilter(owner())
+    local NearGround = R:distance() < 10
+    
+    if(changed(NearGround)){
+        if(NearGround){
+            owner():plySetGravity(0)            
+        }else{
+            owner():plySetGravity(600)                
+        }
+    }
+    local Speed = NearGround ? 200 : 100
+    owner():plyApplyForce((-owner():vel() / 10) + (LockedVec * Speed) + (!NearGround*vec(0,0,-1)*20))        
+}
+
+if(Smashing){
+    owner():plyApplyForce(vec(0,0,-500))    
+    if(OG){
+        owner():soundPlay("smash",2,"physics/metal/metal_barrel_impact_hard6.wav")
+        owner():soundPlay("smash2",3,"physics/metal/metal_barrel_impact_hard3.wav")
+        soundStop("wind")
+        soundPitch("smash2",50)
+        
+        smash()
+        
+        SmashTime = Time
+        Smashing = 0
+        
+        holoPos(1,owner():pos())
+    }    
+}
+
+SDT = Time - SmashTime
+if(SDT < 1){
+    local Up = SDT
+    local Dampen = Up ^ (1/3)
+    holoAlpha(1,150*(1-Up))
+    holoScale(1,vec(30*Dampen,30*Dampen,10))
+}else{
+    holoScale(1,vec(0,0,10))
+    holoAlpha(1,0)
+}
+
+
+##############################################################
+
+if(last()){
+    owner():plySetGravity(600)
+    owner():plySetJumpPower(200)
+    concmd("pac_event slide 0")
+}
+
+#by katsu
+#aug 18, 2021
