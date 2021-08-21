@@ -1,30 +1,16 @@
 @name Ultrakill Movement Beta (WALLJUMP)
 @inputs 
-@outputs SProps:array
-@persist Sliding Smashing Gravity Zdist ShowDebugHolos [LockedVec DashVec]:vector SProps:array DashTime SmashTime WallJumps
+@outputs SProps:array Stamina Bar
+@persist Stamina Sliding Smashing [LockedVec DashVec]:vector SProps:array DashTime SmashTime WallJumps
 @trigger 
 #note that because of how source movement works, walljumping works best if you hold no movement keys while walljumping
-if( first() ){
+if(first()){
 #settings
-    Zdist = 5
 ##################################################
     
     runOnTick(1)
     runOnLast(1)
-    
-    Gravity = owner():plyGetGravity()
-    
-    if(ShowDebugHolos){
-        print("A")
-        for(I=1,4){
-            holoCreate(I)
-            holoColor(I,vec(255,0,0))
-            holoDisableShading(I,1)
-        }
-        
-        holoColor(4,vec(0,0,255))
-    }
-    
+
     findIncludeClass("npc")
     findIncludeClass("player")
     
@@ -60,6 +46,7 @@ if( first() ){
     owner():disableFallDamage()
     
     WallJumps = 3
+    Stamina = 99
 }
 
 Time = systime()
@@ -94,7 +81,9 @@ if(changed(Alive) & Alive){
 ####################################################
 #dash
 
-if(changed(KShift) & KShift){
+if(changed(KShift) & KShift & Stamina >= 33){
+    Stamina -= 33
+    
     if(OG){
         owner():plySetPos(owner():pos()+vec(0,0,5))
     }
@@ -120,6 +109,32 @@ DDT = Time - DashTime
 if(DDT > 0.2 & DDT <= 0.3){
     local Up = (DDT - 0.2)/0.1
     owner():plyApplyForce(-owner():vel() + DashVec*(2000 - 1500*Up^(1/3)))    
+}
+
+if(Stamina < 99){
+    local Remaining = 99 - Stamina
+    local Itr = (Remaining > 0.35) ? 0.35 : Remaining
+    Stamina += Itr
+    
+    Bar = int(Stamina/33)
+    
+    if(changed(Bar) & $Bar > 0){
+        owner():soundPlay("staminaRegen",1,"buttons/blip1.wav")
+        soundVolume("staminaRegen",0.1)
+        switch(Bar){
+            case 1,
+                soundPitch("staminaRegen",179)
+            break
+            
+            case 2,
+                soundPitch("staminaRegen",193)            
+            break  
+
+            case 3,
+                soundPitch("staminaRegen",211)            
+            break          
+        }
+    }
 }
 
 ###################################################################
@@ -216,7 +231,10 @@ if(changed(Sliding)){
         }else{        
             LockedVec = owner():eyeAngles():forward()*vec(1,1,0)
         }
-    }else{
+    }elseif(!first()){
+        owner():soundPlay("stopSlide",0.08,"buttons/lever4.wav")
+        soundPitch("stopSlide",82)
+        soundVolume("stopSlide",0.5)
         concmd("pac_event slide 0")
         owner():plySetGravity(600)
         soundStop("slide")
