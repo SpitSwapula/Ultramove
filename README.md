@@ -1,7 +1,11 @@
 # Ultramove
 An Expression 2 (E2) script that ports Ultrakill's movement mechanics to Garry's Mod
 
-All done by the lovely Katsu
+Movement script done by the lovely Katsu
+
+Coin Flip animation done by the lovely Panny
+
+Slide animation done by the lovely Death
 
 # V1 PAC3
 A PAC model of V1, Slide animation, Dash animation, and first person weapon viewmodels.
