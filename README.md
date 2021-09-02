@@ -87,6 +87,6 @@ Holding crouch while on the ground will make you slide in any direction you are 
 
 You can SLIDEHOP by starting a slide and then jumping. On servers with accelerated backhops allowed, looking in the opposite of your slide direction and then jumping will fling you a long ways.
 
-You can NITROSLIDE by starting a slide and holding dash. This will make you absolutely zoom. But beware, Nitrosliding cannot account for curbs and stairs like normal sliding can. you will need flat terrain.
+You can SLAM STORAGE by groundslamming into a simultaneous wall jump. As you hit the ground, press and hold space bar to launch your self into space.
 
 You can STOMP by dashing and then slamming in rapid succession. It is called this because you dont even need to be airborn to achieve the rather destiny-like AOE, and instead cause the slam to trigger by the act of dashing alone counting as viable grounds to trigger a valid slam.
