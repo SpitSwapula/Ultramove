@@ -7,6 +7,8 @@ Coin Flip animation done by the lovely Panny
 
 Slide animation done by the lovely Death
 
+Slam storage done by the lovely GoldenFlare
+
 # V1 PAC3
 A PAC model of V1, Slide animation, Dash animation, and first person weapon viewmodels.
 All done by the lovely "Death"
